@@ -1,0 +1,69 @@
+import numpy as np
+from tensorflow.keras.models import Model
+from tensorflow.keras.layers import Input,LSTM,Dense
+import numpy as np
+
+# Define parameters for our dataset
+num_samples = 1000     # Number of training examples
+input_seq_len = 10     # Length of input sequences
+target_seq_len = 10    # Length of target sequences
+num_features = 5       # Number of unique 'words' or 'tokens' in our vocabulary
+
+# Generate random input sequences
+encoder_input_data = np.random.randint(0, num_features, size=(num_samples, input_seq_len))
+
+# Initialize target and input data arrays with correct dtype
+decoder_target_data = np.zeros((num_samples, target_seq_len, num_features), dtype='float32')
+decoder_input_data = np.zeros((num_samples, target_seq_len, num_features), dtype='float32')
+
+# Create one-hot encoded versions (fixed space in variable name)
+encoder_input_one_hot = np.zeros((num_samples, input_seq_len, num_features), dtype='float32')
+
+# Corrected loop over enumerations for one-hot encoding
+for i, sequence in enumerate(encoder_input_data):
+    for t, feature in enumerate(sequence):
+        encoder_input_one_hot[i, t, feature] = 1.0
+
+for i in range(num_samples):
+    reversed_sequence = encoder_input_data[i][::-1]
+
+    # Start-of-sequence token (SOS) indicator
+    decoder_input_data[i, 0, 0] = 1.0
+    for t, feature in enumerate(reversed_sequence[:-1]):
+        decoder_input_data[i, t + 1, feature] = 1.0
+
+    for t, feature in enumerate(reversed_sequence):
+        decoder_target_data[i, t, feature] = 1.0
+
+print("Encoder Input Shape:", encoder_input_one_hot.shape)
+print("Decoder Input Shape:", decoder_input_data.shape)
+
+# Display a sample to verify
+print("\nSample Encoder Input (indices):")
+print(encoder_input_data[0])
+print("Sample Decoder Target (one-hot, indicating indices):")
+print(np.argmax(decoder_target_data[0], axis=1))
+Model: "functional"
+┏━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━┓
+┃ Layer (type)        ┃ Output Shape      ┃    Param # ┃ Connected to      ┃
+┡━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━┩
+│ input_layer_1       │ (None, None, 5)   │          0 │ -                 │
+│ (InputLayer)        │                   │            │                   │
+├─────────────────────┼───────────────────┼────────────┼───────────────────┤
+│ input_layer_2       │ (None, None, 5)   │          0 │ -                 │
+│ (InputLayer)        │                   │            │                   │
+├─────────────────────┼───────────────────┼────────────┼───────────────────┤
+│ lstm_1 (LSTM)       │ [(None, 256),     │    268,288 │ input_layer_1[0]… │
+│                     │ (None, 256),      │            │                   │
+│                     │ (None, 256)]      │            │                   │
+├─────────────────────┼───────────────────┼────────────┼───────────────────┤
+│ lstm_2 (LSTM)       │ [(None, None,     │    268,288 │ input_layer_2[0]… │
+│                     │ 256), (None,      │            │ lstm_1[0][1],     │
+│                     │ 256), (None,      │            │ lstm_1[0][2]      │
+│                     │ 256)]             │            │                   │
+├─────────────────────┼───────────────────┼────────────┼───────────────────┤
+│ dense (Dense)       │ (None, None, 5)   │      1,285 │ lstm_2[0][0]      │
+└─────────────────────┴───────────────────┴────────────┴───────────────────┘
+ Total params: 537,861 (2.05 MB)
+ Trainable params: 537,861 (2.05 MB)
+ Non-trainable params: 0 (0.00 B)
